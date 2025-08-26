@@ -1,3 +1,37 @@
+// Debug utility
+class DebugLogger {
+  constructor() {
+    this.enabled = false;
+    this.init();
+  }
+
+  async init() {
+    const { debugLogging = false } = await chrome.storage.sync.get('debugLogging');
+    this.enabled = debugLogging;
+    
+    // Listen for debug setting changes
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'DEBUG_SETTING_CHANGED') {
+        this.enabled = message.enabled;
+      }
+    });
+  }
+
+  log(...args) {
+    if (this.enabled) {
+      console.log(...args);
+    }
+  }
+
+  error(...args) {
+    if (this.enabled) {
+      console.error(...args);
+    }
+  }
+}
+
+const debugLogger = new DebugLogger();
+
 // Semaphore for limiting concurrent operations
 class Semaphore {
   constructor(maxConcurrency) {
@@ -34,20 +68,20 @@ class GitHubWorktrees {
     this.observer = null;
     this.processedPRs = new Set();
     this.CACHE_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days (PR->branch mapping is immutable)
-    console.log('🌳 GitHub Worktrees: Extension initialized');
+    debugLogger.log('🌳 GitHub Worktrees: Extension initialized');
     this.init();
   }
 
   init() {
-    console.log('🌳 Checking if on PR list page...');
-    console.log('🌳 Current URL:', window.location.href);
+    debugLogger.log('🌳 Checking if on PR list page...');
+    debugLogger.log('🌳 Current URL:', window.location.href);
     
     if (this.isOnPRListPage()) {
-      console.log('🌳 On PR list page - starting injection');
+      debugLogger.log('🌳 On PR list page - starting injection');
       this.injectBranchNames();
       this.setupObserver();
     } else {
-      console.log('🌳 Not on PR list page');
+      debugLogger.log('🌳 Not on PR list page');
     }
   }
 
@@ -58,8 +92,8 @@ class GitHubWorktrees {
                          document.querySelector('[data-hovercard-type="pull_request"]') ||
                          document.querySelector('.Box-row');
     
-    console.log('🌳 URL includes /pulls:', isOnPulls);
-    console.log('🌳 Found PR elements:', !!hasPRElements);
+    debugLogger.log('🌳 URL includes /pulls:', isOnPulls);
+    debugLogger.log('🌳 Found PR elements:', !!hasPRElements);
     
     return isOnPulls && hasPRElements;
   }
@@ -71,7 +105,7 @@ class GitHubWorktrees {
       prRows = document.querySelectorAll('.Box-row');
     }
     
-    console.log('🌳 Found PR rows:', prRows.length);
+    debugLogger.log('🌳 Found PR rows:', prRows.length);
     
     // Process all PRs in parallel with concurrency limit
     await this.processAllPRsInParallel(Array.from(prRows));
@@ -79,7 +113,7 @@ class GitHubWorktrees {
 
   async processAllPRsInParallel(rows, maxConcurrency = 3) {
     const startTime = performance.now();
-    console.log('🌳 Starting parallel processing with max concurrency:', maxConcurrency);
+    debugLogger.log('🌳 Starting parallel processing with max concurrency:', maxConcurrency);
     
     const semaphore = new Semaphore(maxConcurrency);
     const promises = rows.map((row, index) => semaphore.acquire().then(async (release) => {
@@ -87,7 +121,7 @@ class GitHubWorktrees {
         const prStart = performance.now();
         await this.processPRRow(row);
         const prTime = performance.now() - prStart;
-        console.log(`🌳 PR ${index + 1} processed in ${prTime.toFixed(0)}ms`);
+        debugLogger.log(`🌳 PR ${index + 1} processed in ${prTime.toFixed(0)}ms`);
       } finally {
         release();
       }
@@ -95,33 +129,33 @@ class GitHubWorktrees {
     
     await Promise.all(promises);
     const totalTime = performance.now() - startTime;
-    console.log(`🌳 Completed parallel processing of ${rows.length} PRs in ${totalTime.toFixed(0)}ms`);
+    debugLogger.log(`🌳 Completed parallel processing of ${rows.length} PRs in ${totalTime.toFixed(0)}ms`);
   }
 
   async processPRRow(row) {
     const prLink = row.querySelector('a[data-hovercard-type="pull_request"]');
     if (!prLink || this.processedPRs.has(prLink.href)) {
-      console.log('🌳 Skipping row - no PR link or already processed');
+      debugLogger.log('🌳 Skipping row - no PR link or already processed');
       return;
     }
     
-    console.log('🌳 Processing PR:', prLink.href);
+    debugLogger.log('🌳 Processing PR:', prLink.href);
     this.processedPRs.add(prLink.href);
     
     const prNumber = this.extractPRNumber(prLink.href);
     if (!prNumber) {
-      console.log('🌳 No PR number found');
+      debugLogger.log('🌳 No PR number found');
       return;
     }
 
-    console.log('🌳 Fetching branch name for PR:', prNumber);
+    debugLogger.log('🌳 Fetching branch name for PR:', prNumber);
     const branchName = await this.getBranchName(prNumber);
     if (!branchName) {
-      console.log('🌳 No branch name returned');
+      debugLogger.log('🌳 No branch name returned');
       return;
     }
 
-    console.log('🌳 Adding branch name to row:', branchName);
+    debugLogger.log('🌳 Adding branch name to row:', branchName);
     this.addBranchNameToRow(row, branchName);
   }
 
@@ -137,14 +171,14 @@ class GitHubWorktrees {
     // Check browser storage cache first
     const cached = await this.getCachedBranchName(cacheKey);
     if (cached) {
-      console.log('🌳 Using cached branch name for:', cacheKey, '→', cached);
+      debugLogger.log('🌳 Using cached branch name for:', cacheKey, '→', cached);
       return cached;
     }
 
     // First try to extract from DOM by visiting the PR page briefly
     const branchFromDOM = await this.getBranchNameFromDOM(prNumber);
     if (branchFromDOM) {
-      console.log('🌳 Got branch name from DOM:', branchFromDOM);
+      debugLogger.log('🌳 Got branch name from DOM:', branchFromDOM);
       await this.cacheBranchName(cacheKey, branchFromDOM);
       return branchFromDOM;
     }
@@ -174,7 +208,7 @@ class GitHubWorktrees {
       }
       return null;
     } catch (error) {
-      console.error('Failed to read from cache:', error);
+      debugLogger.error('Failed to read from cache:', error);
       return null;
     }
   }
@@ -187,9 +221,9 @@ class GitHubWorktrees {
           timestamp: Date.now()
         }
       });
-      console.log('🌳 Cached branch name:', cacheKey, '→', branchName);
+      debugLogger.log('🌳 Cached branch name:', cacheKey, '→', branchName);
     } catch (error) {
-      console.error('Failed to cache branch name:', error);
+      debugLogger.error('Failed to cache branch name:', error);
     }
   }
 
@@ -198,7 +232,7 @@ class GitHubWorktrees {
       const repoPath = window.location.pathname.split('/').slice(1, 3).join('/');
       const prUrl = `https://github.com/${repoPath}/pull/${prNumber}`;
       
-      console.log('🌳 Fetching PR page for DOM extraction:', prUrl);
+      debugLogger.log('🌳 Fetching PR page for DOM extraction:', prUrl);
       
       const response = await fetch(prUrl);
       if (!response.ok) throw new Error('Failed to fetch PR page');
@@ -221,7 +255,7 @@ class GitHubWorktrees {
         if (element) {
           const branchName = element.textContent.trim();
           if (branchName && !branchName.includes('/')) {
-            console.log('🌳 Found branch name with selector', selector, ':', branchName);
+            debugLogger.log('🌳 Found branch name with selector', selector, ':', branchName);
             return branchName;
           }
         }
@@ -236,7 +270,7 @@ class GitHubWorktrees {
       
       return null;
     } catch (error) {
-      console.error('Failed to extract branch from DOM:', error);
+      debugLogger.error('Failed to extract branch from DOM:', error);
       return null;
     }
   }
@@ -245,14 +279,14 @@ class GitHubWorktrees {
     const repoPath = window.location.pathname.split('/').slice(1, 3).join('/');
     
     try {
-      console.log('🌳 Trying API fallback for PR:', prNumber);
+      debugLogger.log('🌳 Trying API fallback for PR:', prNumber);
       const response = await fetch(`https://api.github.com/repos/${repoPath}/pulls/${prNumber}`);
       if (!response.ok) throw new Error('API request failed');
       
       const prData = await response.json();
       return prData.head.ref;
     } catch (error) {
-      console.error('Failed to fetch branch name from API:', error);
+      debugLogger.error('Failed to fetch branch name from API:', error);
       return null;
     }
   }
@@ -268,13 +302,13 @@ class GitHubWorktrees {
     }
     
     if (!metaLine) {
-      console.log('🌳 No metadata line found in row');
+      debugLogger.log('🌳 No metadata line found in row');
       return;
     }
 
     // Check if we already added branch info
     if (metaLine.querySelector('.github-worktrees-branch')) {
-      console.log('🌳 Branch info already exists');
+      debugLogger.log('🌳 Branch info already exists');
       return;
     }
 
@@ -296,7 +330,7 @@ class GitHubWorktrees {
     branchContainer.appendChild(copyButton);
     
     metaLine.appendChild(branchContainer);
-    console.log('🌳 Successfully added branch name to row');
+    debugLogger.log('🌳 Successfully added branch name to row');
   }
 
   createCopyButton(branchName) {
@@ -326,7 +360,7 @@ class GitHubWorktrees {
       await navigator.clipboard.writeText(text);
       this.showCopyConfirmation(button);
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      debugLogger.error('Failed to copy to clipboard:', error);
     }
   }
 

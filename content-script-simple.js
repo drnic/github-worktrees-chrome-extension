@@ -1,9 +1,37 @@
+// Debug utility
+class DebugLogger {
+  constructor() {
+    this.enabled = false;
+    this.init();
+  }
+
+  async init() {
+    const { debugLogging = false } = await chrome.storage.sync.get('debugLogging');
+    this.enabled = debugLogging;
+    
+    // Listen for debug setting changes
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'DEBUG_SETTING_CHANGED') {
+        this.enabled = message.enabled;
+      }
+    });
+  }
+
+  log(...args) {
+    if (this.enabled) {
+      console.log(...args);
+    }
+  }
+}
+
+const debugLogger = new DebugLogger();
+
 // Simple test version - just adds "TEST BRANCH" text to verify extension works
-console.log('🌳 Simple test version loaded');
+debugLogger.log('🌳 Simple test version loaded');
 
 function addTestText() {
   const prRows = document.querySelectorAll('a[data-hovercard-type="pull_request"]');
-  console.log('🌳 Found PR links:', prRows.length);
+  debugLogger.log('🌳 Found PR links:', prRows.length);
   
   prRows.forEach((link, index) => {
     const parent = link.closest('.Box-row') || link.closest('[class*="issue"]');
@@ -16,7 +44,7 @@ function addTestText() {
       const metaLine = parent.querySelector('[class*="opened"]') || parent.querySelector('relative-time');
       if (metaLine) {
         metaLine.appendChild(testSpan);
-        console.log('🌳 Added test text to PR', index + 1);
+        debugLogger.log('🌳 Added test text to PR', index + 1);
       }
     }
   });

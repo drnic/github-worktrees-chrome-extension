@@ -28,6 +28,18 @@ A Chrome extension that enhances GitHub PR lists by displaying branch names with
    - `git fetch origin <branch-name>`
    - `git checkout <branch-name>`
 
+## Debugging
+
+The extension includes optional debug logging to help troubleshoot issues:
+
+1. Click the extension icon in your Chrome toolbar while on a GitHub page
+2. Toggle the "Debug logging" switch in the popup
+3. Open Chrome DevTools (F12) and check the Console tab
+4. Debug messages will appear with 🌳 prefixes when enabled
+5. Toggle can be turned off anytime to reduce console noise
+
+Debug logging is **off by default** and only shows extension-specific messages when enabled.
+
 ## File Structure
 
 ```

@@ -1,5 +1,31 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const statusElement = document.getElementById('status');
+  const debugToggle = document.getElementById('debugToggle');
+  
+  // Load current debug setting
+  const { debugLogging = false } = await chrome.storage.sync.get('debugLogging');
+  if (debugLogging) {
+    debugToggle.classList.add('active');
+  }
+  
+  // Handle debug toggle click
+  debugToggle.addEventListener('click', async () => {
+    const isActive = debugToggle.classList.contains('active');
+    const newState = !isActive;
+    
+    debugToggle.classList.toggle('active', newState);
+    await chrome.storage.sync.set({ debugLogging: newState });
+    
+    // Notify content script of the change
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab.url && tab.url.includes('github.com')) {
+        chrome.tabs.sendMessage(tab.id, { type: 'DEBUG_SETTING_CHANGED', enabled: newState });
+      }
+    } catch (error) {
+      // Ignore if content script isn't loaded
+    }
+  });
   
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
