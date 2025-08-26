@@ -1,0 +1,20 @@
+{
+  "../../../../../@crx/manifest": {
+    "file": "assets/crx-manifest.js-C74YHnmi.js",
+    "name": "crx-manifest.js",
+    "src": "../../../../../@crx/manifest",
+    "isEntry": true
+  },
+  "content-script.js": {
+    "file": "assets/content-script.js-Dc8WgKG-.js",
+    "name": "content-script.js",
+    "src": "content-script.js",
+    "isEntry": true
+  },
+  "popup.html": {
+    "file": "assets/popup.html-oTn6EGMm.js",
+    "name": "popup.html",
+    "src": "popup.html",
+    "isEntry": true
+  }
+}

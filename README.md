@@ -14,10 +14,20 @@ A Chrome extension that enhances GitHub PR lists by displaying branch names with
 ### Development Installation
 
 1. Clone this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top right corner
-4. Click "Load unpacked" and select the extension directory
-5. The extension will now be active on GitHub PR pages
+2. Install dependencies: `npm install`
+3. Build the extension: `npm run build`
+4. Open Chrome and navigate to `chrome://extensions/`
+5. Enable "Developer mode" in the top right corner
+6. Click "Load unpacked" and select the `dist/` folder
+7. The extension will now be active on GitHub PR pages
+
+### Development Commands
+
+- `npm run dev` - Build and watch for changes during development
+- `npm run build` - Build for production
+- `npm run build:zip` - Build and create zip file for Chrome Web Store
+- `npm run clean` - Remove build artifacts
+- `npm run lint` - Run code linting
 
 ### Usage
 
