@@ -1,7 +1,39 @@
+// Semaphore for limiting concurrent operations
+class Semaphore {
+  constructor(maxConcurrency) {
+    this.maxConcurrency = maxConcurrency;
+    this.currentConcurrency = 0;
+    this.queue = [];
+  }
+
+  async acquire() {
+    return new Promise((resolve) => {
+      const tryAcquire = () => {
+        if (this.currentConcurrency < this.maxConcurrency) {
+          this.currentConcurrency++;
+          resolve(() => this.release());
+        } else {
+          this.queue.push(tryAcquire);
+        }
+      };
+      tryAcquire();
+    });
+  }
+
+  release() {
+    this.currentConcurrency--;
+    if (this.queue.length > 0) {
+      const next = this.queue.shift();
+      next();
+    }
+  }
+}
+
 class GitHubWorktrees {
   constructor() {
     this.observer = null;
     this.processedPRs = new Set();
+    this.CACHE_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days (PR->branch mapping is immutable)
     console.log('🌳 GitHub Worktrees: Extension initialized');
     this.init();
   }
@@ -41,9 +73,29 @@ class GitHubWorktrees {
     
     console.log('🌳 Found PR rows:', prRows.length);
     
-    for (const row of prRows) {
-      await this.processPRRow(row);
-    }
+    // Process all PRs in parallel with concurrency limit
+    await this.processAllPRsInParallel(Array.from(prRows));
+  }
+
+  async processAllPRsInParallel(rows, maxConcurrency = 3) {
+    const startTime = performance.now();
+    console.log('🌳 Starting parallel processing with max concurrency:', maxConcurrency);
+    
+    const semaphore = new Semaphore(maxConcurrency);
+    const promises = rows.map((row, index) => semaphore.acquire().then(async (release) => {
+      try {
+        const prStart = performance.now();
+        await this.processPRRow(row);
+        const prTime = performance.now() - prStart;
+        console.log(`🌳 PR ${index + 1} processed in ${prTime.toFixed(0)}ms`);
+      } finally {
+        release();
+      }
+    }));
+    
+    await Promise.all(promises);
+    const totalTime = performance.now() - startTime;
+    console.log(`🌳 Completed parallel processing of ${rows.length} PRs in ${totalTime.toFixed(0)}ms`);
   }
 
   async processPRRow(row) {
@@ -79,15 +131,66 @@ class GitHubWorktrees {
   }
 
   async getBranchName(prNumber) {
+    const repoPath = window.location.pathname.split('/').slice(1, 3).join('/');
+    const cacheKey = `branch_${repoPath}#${prNumber}`;
+    
+    // Check browser storage cache first
+    const cached = await this.getCachedBranchName(cacheKey);
+    if (cached) {
+      console.log('🌳 Using cached branch name for:', cacheKey, '→', cached);
+      return cached;
+    }
+
     // First try to extract from DOM by visiting the PR page briefly
     const branchFromDOM = await this.getBranchNameFromDOM(prNumber);
     if (branchFromDOM) {
       console.log('🌳 Got branch name from DOM:', branchFromDOM);
+      await this.cacheBranchName(cacheKey, branchFromDOM);
       return branchFromDOM;
     }
 
     // Fallback to API (may fail for private repos)
-    return await this.getBranchNameFromAPI(prNumber);
+    const branchFromAPI = await this.getBranchNameFromAPI(prNumber);
+    if (branchFromAPI) {
+      await this.cacheBranchName(cacheKey, branchFromAPI);
+    }
+    return branchFromAPI;
+  }
+
+  async getCachedBranchName(cacheKey) {
+    try {
+      const result = await chrome.storage.local.get([cacheKey]);
+      const cached = result[cacheKey];
+      
+      if (cached) {
+        // Check if cache entry has expired
+        const age = Date.now() - cached.timestamp;
+        if (age < this.CACHE_TTL) {
+          return cached.branchName;
+        } else {
+          // Remove expired entry
+          await chrome.storage.local.remove([cacheKey]);
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to read from cache:', error);
+      return null;
+    }
+  }
+
+  async cacheBranchName(cacheKey, branchName) {
+    try {
+      await chrome.storage.local.set({
+        [cacheKey]: {
+          branchName,
+          timestamp: Date.now()
+        }
+      });
+      console.log('🌳 Cached branch name:', cacheKey, '→', branchName);
+    } catch (error) {
+      console.error('Failed to cache branch name:', error);
+    }
   }
 
   async getBranchNameFromDOM(prNumber) {

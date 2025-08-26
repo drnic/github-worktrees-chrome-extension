@@ -5,7 +5,8 @@
   "description": "Enhance GitHub PR lists by showing branch names with copy-to-clipboard functionality",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "https://github.com/*/*"
