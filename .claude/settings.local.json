@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.svgrepo.com)",
+      "Bash(convert:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
