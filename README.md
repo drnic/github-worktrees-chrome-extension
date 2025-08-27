@@ -57,16 +57,26 @@ Debug logging is **off by default** and only shows extension-specific messages w
 ```
 github-worktrees-chrome-extension/
 ├── manifest.json          # Extension manifest (Manifest V3)
-├── content-script.js      # Main functionality for PR page injection
-├── styles.css            # Styling to match GitHub's design
+├── content-script.js      # Main orchestration logic
+├── styles.css            # GitHub-compatible styling
 ├── popup.html            # Extension popup interface
 ├── popup.js              # Popup functionality
+├── src/                   # Modular library structure
+│   ├── utils/            # Generic utilities
+│   │   ├── debug-logger.js  # Conditional logging with Chrome storage
+│   │   ├── semaphore.js     # Concurrency control for async operations
+│   │   └── storage.js       # Chrome storage utilities with TTL caching
+│   ├── github/           # GitHub-specific functionality
+│   │   └── api.js           # GitHub API interactions and DOM extraction
+│   └── dom/              # DOM manipulation utilities
+│       └── ui-helpers.js    # UI creation and GitHub styling integration
 ├── icons/                # Extension icons
 │   ├── github.svg
 │   ├── github-16.png
 │   ├── github-32.png
 │   ├── github-48.png
 │   └── github-128.png
+├── CLAUDE.md             # Development guidance for Claude Code
 ├── PRD.md               # Product Requirements Document
 └── README.md            # This file
 ```
