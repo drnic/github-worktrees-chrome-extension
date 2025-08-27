@@ -2,6 +2,8 @@
 
 A Chrome extension that enhances GitHub PR lists by displaying branch names with convenient copy-to-clipboard functionality.
 
+![github-pr-branch-names](docs/images/github-pr-branch-names.png)
+
 ## Features
 
 - **Branch Name Display**: Shows the branch name inline on each PR in the GitHub PR list view
