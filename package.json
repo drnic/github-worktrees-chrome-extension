@@ -1,6 +1,6 @@
 {
   "name": "github-worktrees-chrome-extension",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Enhance GitHub PR lists by showing branch names with copy-to-clipboard functionality",
   "type": "module",
   "scripts": {
@@ -16,7 +16,13 @@
     "terser": "^5.0.0",
     "eslint": "^8.57.0"
   },
-  "keywords": ["chrome-extension", "github", "worktrees", "git", "branches"],
+  "keywords": [
+    "chrome-extension",
+    "github",
+    "worktrees",
+    "git",
+    "branches"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

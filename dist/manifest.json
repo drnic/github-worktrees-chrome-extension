@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GitHub Worktrees",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Enhance GitHub PR lists by showing branch names with copy-to-clipboard functionality",
   "permissions": [
     "activeTab",
@@ -14,7 +14,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/content-script.js-Dc8WgKG-.js"
+        "assets/content-script.js-DeD2sE3_.js"
       ],
       "matches": [
         "https://github.com/*/*/pulls*"
@@ -40,7 +40,7 @@
         "https://github.com/*"
       ],
       "resources": [
-        "assets/content-script.js-Dc8WgKG-.js"
+        "assets/content-script.js-DeD2sE3_.js"
       ],
       "use_dynamic_url": false
     }
