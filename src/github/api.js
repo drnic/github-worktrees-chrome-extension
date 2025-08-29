@@ -51,7 +51,7 @@ export class GitHubAPI {
         const element = doc.querySelector(selector);
         if (element) {
           const branchName = element.textContent.trim();
-          if (branchName && !branchName.includes('/')) {
+          if (branchName) {
             this.debugLogger?.log('Found branch name with selector', selector, ':', branchName);
             return branchName;
           }
